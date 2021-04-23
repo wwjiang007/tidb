@@ -28,6 +28,7 @@ import (
 	"github.com/pingcap/tidb/session"
 	"github.com/pingcap/tidb/sessionctx"
 	"github.com/pingcap/tidb/sessionctx/stmtctx"
+	"github.com/pingcap/tidb/sessionctx/variable"
 	"github.com/pingcap/tidb/store/mockstore"
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/collate"
@@ -1219,7 +1220,7 @@ func (s *testRangerSuite) TestIndexRangeElimininatedProjection(c *C) {
 	testKit := testkit.NewTestKit(c, store)
 	testKit.MustExec("use test")
 	testKit.MustExec("drop table if exists t")
-	testKit.Se.GetSessionVars().EnableClusteredIndex = false
+	testKit.Se.GetSessionVars().EnableClusteredIndex = variable.ClusteredIndexDefModeIntOnly
 	testKit.MustExec("create table t(a int not null, b int not null, primary key(a,b))")
 	testKit.MustExec("insert into t values(1,2)")
 	testKit.MustExec("analyze table t")
@@ -1339,7 +1340,7 @@ func (s *testRangerSuite) TestCompIndexMultiColDNF1(c *C) {
 	c.Assert(err, IsNil)
 	testKit := testkit.NewTestKit(c, store)
 	testKit.MustExec("use test")
-	testKit.Se.GetSessionVars().EnableClusteredIndex = true
+	testKit.Se.GetSessionVars().EnableClusteredIndex = variable.ClusteredIndexDefModeOn
 	testKit.MustExec("drop table if exists t")
 	testKit.MustExec("create table t(a int, b int, c int, primary key(a,b));")
 	testKit.MustExec("insert into t values(1,1,1),(2,2,3)")
@@ -1373,7 +1374,7 @@ func (s *testRangerSuite) TestCompIndexMultiColDNF2(c *C) {
 	c.Assert(err, IsNil)
 	testKit := testkit.NewTestKit(c, store)
 	testKit.MustExec("use test")
-	testKit.Se.GetSessionVars().EnableClusteredIndex = true
+	testKit.Se.GetSessionVars().EnableClusteredIndex = variable.ClusteredIndexDefModeOn
 	testKit.MustExec("drop table if exists t")
 	testKit.MustExec("create table t(a int, b int, c int, primary key(a,b,c));")
 	testKit.MustExec("insert into t values(1,1,1),(2,2,3)")
@@ -1529,7 +1530,7 @@ func (s *testRangerSuite) TestIndexRangeForYear(c *C) {
 			exprStr:     `a not in (-1, 1, 2)`,
 			accessConds: "[not(in(test.t.a, -1, 1, 2))]",
 			filterConds: "[]",
-			resultStr:   `[(NULL,0) [0,2001) (2002,+inf]]`,
+			resultStr:   `[(NULL,2001) (2002,+inf]]`,
 		},
 		{
 			indexPos:    0,
@@ -1557,7 +1558,7 @@ func (s *testRangerSuite) TestIndexRangeForYear(c *C) {
 			exprStr:     `a not in (1, 2, 15698)`,
 			accessConds: "[not(in(test.t.a, 1, 2, 15698))]",
 			filterConds: "[]",
-			resultStr:   `[(NULL,2001) (2002,2155] (2155,+inf]]`,
+			resultStr:   `[(NULL,2001) (2002,+inf]]`,
 		},
 		{
 			indexPos:    0,
@@ -1585,7 +1586,7 @@ func (s *testRangerSuite) TestIndexRangeForYear(c *C) {
 			exprStr:     `a != 2156`,
 			accessConds: "[ne(test.t.a, 2156)]",
 			filterConds: "[]",
-			resultStr:   `[[-inf,2155] (2155,+inf]]`,
+			resultStr:   `[[-inf,+inf]]`,
 		},
 		{
 			exprStr:     "a < 99 or a > 01",
